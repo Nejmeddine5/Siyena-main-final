@@ -1,0 +1,240 @@
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Gestion des Utilisateurs</h1>
+      <p class="text-sm text-gray-500">Administrez les techniciens et membres du personnel.</p>
+    </div>
+  </div>
+
+  <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+    <div class="relative w-full md:max-w-md">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        class="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm transition-all shadow-sm" 
+        placeholder="Rechercher par nom ou email..."
+      >
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 shadow-sm rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-4">Utilisateur</th>
+            <th class="px-6 py-4 text-center">Statut</th>
+            <th class="px-6 py-4 text-center">Rôle</th>
+            <th class="px-6 py-4">Créé le</th>
+            <th class="px-6 py-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <!-- Empty State -->
+          <tr *ngIf="filteredUsers().length === 0 && !isLoading()">
+            <td colspan="5" class="px-6 py-12 text-center text-gray-500 italic">
+              Aucun utilisateur trouvé pour "{{ searchTerm() }}"
+            </td>
+          </tr>
+          
+          <tr *ngFor="let user of filteredUsers()" class="group hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-all duration-200">
+            <td class="px-6 py-5">
+              <div class="flex items-center">
+                <div 
+                  [ngClass]="{
+                    'from-indigo-500 to-purple-500': user.role === 'admin',
+                    'from-blue-500 to-cyan-500': user.role === 'technician',
+                    'from-emerald-500 to-green-500': user.role === 'employee'
+                  }"
+                  class="h-11 w-11 rounded-2xl bg-gradient-to-br flex items-center justify-center text-white font-black text-lg mr-4 shadow-sm group-hover:scale-110 transition-transform duration-300"
+                >
+                  {{ user.nom.charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-sm font-extrabold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {{ user.nom }}
+                  </span>
+                  <div class="flex items-center text-xs text-gray-500 mt-0.5">
+                    <svg class="w-3 h-3 mr-1 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {{ user.email }}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Approval Status Column -->
+            <td class="px-6 py-4 text-center">
+              <!-- Approved -->
+              <span *ngIf="user.isApproved"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+                Approuvé
+              </span>
+              <!-- Pending -->
+              <div *ngIf="!user.isApproved" class="flex flex-col items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-xl animate-pulse">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  En attente
+                </span>
+                <div class="flex gap-1.5">
+                  <button (click)="approveUser(user)"
+                    class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
+                    title="Approuver le compte">
+                    Accepter
+                  </button>
+                  <button (click)="rejectUser(user)"
+                    class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
+                    title="Rejeter le compte">
+                    Rejeter
+                  </button>
+                </div>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-center">
+              <button 
+                (click)="openRolePicker(user, $event)"
+                [ngClass]="{
+                  'text-indigo-600 bg-indigo-50 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800': user.role === 'admin',
+                  'text-blue-600 bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800': user.role === 'technician',
+                  'text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800': user.role === 'employee'
+                }"
+                class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold border rounded-xl hover:shadow-md transition-all active:scale-95"
+              >
+                <span class="capitalize">{{ user.role === 'technician' ? 'Technicien' : user.role === 'employee' ? 'Employé' : 'Admin' }}</span>
+                <svg class="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4 mr-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {{ user.createdAt | date:'longDate' }}
+              </div>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <button 
+                (click)="openDeleteModal(user)" 
+                class="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all duration-300 transform active:scale-90"
+                title="Supprimer l'utilisateur"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Custom Delete Modal -->
+  <div *ngIf="showDeleteModal()" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" (click)="closeDeleteModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in duration-200">
+      <div class="p-8 text-center">
+        <!-- Warning Icon -->
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
+          <svg class="h-8 w-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Confirmer la suppression</h3>
+        <p class="text-gray-500 dark:text-gray-400">
+          Êtes-vous sûr de vouloir supprimer définitivement le compte de 
+          <span class="font-bold text-gray-900 dark:text-white">{{ userToDelete()?.nom }}</span> ? 
+          Cette action est irréversible.
+        </p>
+      </div>
+      
+      <div class="bg-gray-50 dark:bg-gray-800/50 px-8 py-6 flex flex-col sm:flex-row gap-3">
+        <button (click)="closeDeleteModal()" class="flex-1 px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+          Annuler
+        </button>
+        <button (click)="confirmDelete()" class="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg shadow-red-200 dark:shadow-none transition-all">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modern Role Picker Overlay -->
+  <div *ngIf="userChoosingRole()" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300" (click)="closeRolePicker()"></div>
+    
+    <!-- Picker Content -->
+    <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl w-full max-w-[320px] relative z-10 overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-200">
+      <div class="p-8 text-center border-b border-gray-50 dark:border-gray-800">
+        <h3 class="text-lg font-black text-gray-900 dark:text-white mb-1">Modifier le rôle</h3>
+        <p class="text-xs text-gray-500">Pour {{ userChoosingRole()?.nom }}</p>
+      </div>
+      
+      <div class="p-4 space-y-2 bg-gray-50/50 dark:bg-gray-800/30">
+        <button 
+          *ngFor="let role of roles"
+          (click)="changeRole(userChoosingRole()!, role); closeRolePicker()"
+          [ngClass]="{
+            'bg-white dark:bg-gray-800 shadow-md ring-2 ring-indigo-500/20': userChoosingRole()?.role === role,
+            'hover:bg-white dark:hover:bg-gray-800': userChoosingRole()?.role !== role
+          }"
+          class="w-full flex items-center p-4 rounded-3xl transition-all duration-200 group"
+        >
+          <div 
+            [ngClass]="{
+              'bg-indigo-500': role === 'admin',
+              'bg-blue-500': role === 'technician',
+              'bg-emerald-500': role === 'employee'
+            }"
+            class="h-10 w-10 rounded-2xl flex items-center justify-center text-white shadow-sm mr-4"
+          >
+            <svg *ngIf="role === 'admin'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            <svg *ngIf="role === 'technician'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <svg *ngIf="role === 'employee'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          </div>
+          <div class="text-left">
+            <div class="text-sm font-bold text-gray-900 dark:text-white capitalize">
+              {{ role === 'technician' ? 'Technicien' : role === 'employee' ? 'Employé' : 'Admin' }}
+            </div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold opacity-60">Niveau {{ role === 'admin' ? '3' : role === 'technician' ? '2' : '1' }}</div>
+          </div>
+          <div 
+            *ngIf="userChoosingRole()?.role === role"
+            class="ml-auto h-6 w-6 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm"
+          >
+            <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </button>
+      </div>
+      
+      <div class="p-6">
+        <button (click)="closeRolePicker()" class="w-full py-4 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors uppercase tracking-widest">
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

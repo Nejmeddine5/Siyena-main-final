@@ -1,0 +1,146 @@
+<div class="p-0 sm:p-4">
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 px-4 sm:px-0">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white flex items-center">
+        <span class="p-2 bg-rose-100 dark:bg-rose-900/40 rounded-xl mr-3">
+          <svg class="w-6 h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </span>
+        Alertes IA Chatbot
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Détection automatique des problèmes via l'assistance intelligente</p>
+    </div>
+    
+    <div class="flex items-center bg-white dark:bg-gray-800 p-1.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+      <span class="px-4 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-900/20 rounded-xl uppercase tracking-wider">
+        {{ alerts.length }} Alertes Actives
+      </span>
+    </div>
+  </div>
+
+  <!-- Desktop Table View -->
+  <div class="hidden lg:block bg-white dark:bg-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700/50">
+        <thead class="bg-gray-50/50 dark:bg-gray-900/50">
+          <tr>
+            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Problème</th>
+            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Gravité</th>
+            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">IA Confidence</th>
+            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Statut</th>
+            <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <tr *ngIf="alerts.length === 0">
+            <td colspan="5" class="px-6 py-20 text-center">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 bg-gray-50 dark:bg-gray-900 rounded-full flex items-center justify-center mb-4">
+                  <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                </div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Aucune alerte IA détectée</p>
+              </div>
+            </td>
+          </tr>
+          <tr *ngFor="let alert of alerts" class="hover:bg-gray-50/80 dark:hover:bg-gray-750 transition-all group">
+            <td class="px-6 py-5">
+              <div class="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 max-w-xs font-medium leading-relaxed">
+                {{ alert.issue }}
+              </div>
+              <div class="text-[10px] text-gray-400 mt-1 flex items-center">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {{ alert.createdAt | date:'short' }}
+              </div>
+            </td>
+            <td class="px-6 py-5 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border"
+                [ngClass]="{
+                  'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800': alert.severity === 'critical',
+                  'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800': alert.severity === 'high',
+                  'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800': alert.severity === 'medium',
+                  'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800': alert.severity === 'low'
+                }">
+                {{ alert.severity }}
+              </span>
+            </td>
+            <td class="px-6 py-5 whitespace-nowrap">
+              <div class="flex items-center space-x-2">
+                <div class="flex-1 h-1.5 w-16 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div class="h-full bg-indigo-500 rounded-full" [style.width.%]="alert.confidence * 100"></div>
+                </div>
+                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">{{ alert.confidence * 100 | number:'1.0-0' }}%</span>
+              </div>
+            </td>
+            <td class="px-6 py-5 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold" 
+                [ngClass]="alert.status === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'">
+                <div class="h-1.5 w-1.5 rounded-full mr-2" [ngClass]="alert.status === 'new' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'"></div>
+                {{ alert.status === 'new' ? 'NOUVEAU' : 'ASSIGNÉ' }}
+              </span>
+            </td>
+            <td class="px-6 py-5 whitespace-nowrap text-right">
+              <button
+                *ngIf="alert.status === 'new'"
+                (click)="createTicket(alert._id)"
+                class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:scale-105 active:scale-95">
+                <svg class="mr-2 -ml-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                CRÉER TICKET
+              </button>
+              <button *ngIf="alert.status !== 'new'" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="lg:hidden space-y-4 px-4 sm:px-0">
+    <div *ngIf="alerts.length === 0" class="py-20 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
+        <p class="text-sm text-gray-500">Aucune alerte</p>
+    </div>
+    
+    <div *ngFor="let alert of alerts" 
+         class="alert-card bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+      <div class="flex justify-end items-start mb-4">
+        <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest"
+              [ngClass]="{
+                'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400': alert.severity === 'critical',
+                'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400': alert.severity === 'high',
+                'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400': alert.severity === 'medium',
+                'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400': alert.severity === 'low'
+              }">
+          {{ alert.severity }}
+        </span>
+      </div>
+      
+      <p class="text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed mb-4 line-clamp-3">
+        {{ alert.issue }}
+      </p>
+      
+      <div class="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-gray-700/50">
+        <div class="flex flex-col">
+            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">IA Confidence</span>
+            <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">{{ alert.confidence * 100 | number:'1.0-0' }}%</span>
+        </div>
+        
+        <button
+          *ngIf="alert.status === 'new'"
+          (click)="createTicket(alert._id)"
+          class="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl shadow-lg shadow-indigo-500/20">
+          CRÉER TICKET
+        </button>
+        <span *ngIf="alert.status !== 'new'" class="text-[10px] font-bold text-emerald-600 flex items-center">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+            ASSIGNÉ
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+

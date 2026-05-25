@@ -1,0 +1,11 @@
+node_modules
+.angular
+dist
+build
+coverage
+.git
+.vscode
+.idea
+*.log
+
+

@@ -1,0 +1,64 @@
+<div class="auth-wrapper">
+  <div class="container" [class.right-panel-active]="isSignUpActive()" id="container">
+
+    <!-- Sign Up Form -->
+    <div class="form-container sign-up-container">
+      <form [formGroup]="signupForm" (ngSubmit)="onSignup()">
+        <h1>Créer un compte</h1>
+
+        <!-- Success message: account pending approval -->
+        <div *ngIf="successMessage() && isSignUpActive()" class="success-msg">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 8v4M12 16h.01"></path>
+          </svg>
+          <span>{{ successMessage() }}</span>
+        </div>
+
+        <div *ngIf="!successMessage()">
+          <input type="text" placeholder="Nom" formControlName="nom" />
+          <input type="email" placeholder="Email" formControlName="email" />
+          <input type="password" placeholder="Mot de passe" formControlName="password" />
+          <button type="submit" [disabled]="signupForm.invalid || isLoading()">
+            <span *ngIf="!isLoading()">S'inscrire</span>
+            <span *ngIf="isLoading()">Chargement...</span>
+          </button>
+        </div>
+
+        <div *ngIf="errorMessage() && isSignUpActive()" class="error-msg">{{ errorMessage() }}</div>
+      </form>
+    </div>
+
+    <!-- Sign In Form -->
+    <div class="form-container sign-in-container">
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+        <h1>Connexion</h1>
+        <input type="text" placeholder="Email ou Nom" formControlName="identifier" />
+        <input type="password" placeholder="Mot de passe" formControlName="password" />
+        <a href="#">Mot de passe oublié ?</a>
+        <button type="submit" [disabled]="loginForm.invalid || isLoading()">
+          <span *ngIf="!isLoading()">Se connecter</span>
+          <span *ngIf="isLoading()">Chargement...</span>
+        </button>
+        <div *ngIf="errorMessage() && !isSignUpActive()" class="error-msg">{{ errorMessage() }}</div>
+      </form>
+    </div>
+
+    <!-- Overlay -->
+    <div class="overlay-container">
+      <div class="overlay">
+        <div class="overlay-panel overlay-left">
+          <h1>Bon retour !</h1>
+          <p>Pour rester en contact avec nous, veuillez vous connecter avec vos informations personnelles</p>
+          <button class="ghost" (click)="togglePanel(false)" id="signIn">Se connecter</button>
+        </div>
+        <div class="overlay-panel overlay-right">
+          <h1>Salut, l'ami !</h1>
+          <p>Entrez vos coordonnées personnelles et commencez votre voyage avec nous</p>
+          <button class="ghost" (click)="togglePanel(true)" id="signUp">S'inscrire</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

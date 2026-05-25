@@ -1,0 +1,17 @@
+.active-link {
+  background-color: rgba(79, 70, 229, 0.1);
+  color: #4f46e5 !important;
+}
+
+.dark .active-link {
+  background-color: rgba(129, 140, 248, 0.1);
+  color: #818cf8 !important;
+}
+
+aside {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+main {
+  scroll-behavior: smooth;
+}

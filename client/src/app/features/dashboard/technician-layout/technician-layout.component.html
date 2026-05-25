@@ -1,0 +1,71 @@
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 pt-20 flex flex-col md:flex-row">
+  <!-- Floating Sidebar -->
+  <aside
+    class="w-full md:w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl md:h-auto self-start md:sticky md:top-24 flex flex-col p-6 shadow-lg z-10 hidden md:flex md:ml-6 md:mt-6">
+    <div class="flex flex-col h-full space-y-4">
+      <div class="flex items-center justify-center mb-6">
+        <img src="/media/technicien.png" alt="Technicien"
+          class="h-28 w-28 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-inner object-cover">
+      </div>
+
+      <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">Navigation</h2>
+
+      <!-- Dashboard Button -->
+      <a routerLink="/dashboard"
+        routerLinkActive="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+        [routerLinkActiveOptions]="{exact: true}"
+        class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all w-full group">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        Dashboard
+      </a>
+
+
+      <!-- TICKETS -->
+      <a routerLink="/tickets"
+        routerLinkActive="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+        class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all w-full group">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        Tickets
+      </a>
+
+
+      <!-- Profile Button -->
+      <a routerLink="/profile"
+        routerLinkActive="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+        class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all w-full group">
+        <svg class="w-5 h-5 mr-3 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Mon Profil
+      </a>
+
+      <div class="flex-grow"></div>
+
+      <!-- Logout Button -->
+      <button (click)="logout()"
+        class="flex items-center px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all shadow-sm w-full group mt-auto">
+        <svg class="w-5 h-5 mr-3 text-red-500 dark:text-red-400 group-hover:scale-110 transition-transform" fill="none"
+          stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        Se déconnecter
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Nav (optional, or rely on global) -->
+  <!-- We'll keep it simple for now -->
+
+  <!-- Main Content -->
+  <main class="flex-1 w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto">
+    <router-outlet></router-outlet>
+  </main>
+</div>

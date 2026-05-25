@@ -1,0 +1,97 @@
+# ===========================================
+# SIYENA - .gitignore
+# Fichiers à NE PAS inclure dans Git
+# ===========================================
+
+# ===========================================
+# SÉCURITÉ - NE JAMAIS COMMIT CES FICHIERS !
+# ===========================================
+.env
+.env.*
+!.env.example
+server/.env
+
+# ===========================================
+# NODE.JS - Dépendances
+# ===========================================
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.pnpm-debug.log*
+package-lock.json
+
+# ===========================================
+# ANGULAR - Build, Cache, Compilation
+# ===========================================
+dist/
+tmp/
+out-tsc/
+bazel-out/
+.angular/
+.angular/cache/
+
+# ===========================================
+# LOGS
+# ===========================================
+logs/
+*.log
+
+# ===========================================
+# FICHIERS DE TEST (brouillons temporaires)
+# ===========================================
+server/test_api.js
+server/test_api_base.js
+server/test_api_ollama.js
+check_notifs.js
+seed_notif.js
+backend_requests.http
+
+# ===========================================
+# ÉDITEURS & SYSTÈME D'EXPLOITATION
+# ===========================================
+# VSCode
+.vscode/
+
+# JetBrains (IntelliJ, WebStorm...)
+.idea/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Linux
+*~
+
+# ===========================================
+# DOCKER
+# ===========================================
+# (conserver les Dockerfile et docker-compose.yml)
+# mais ignorer les volumes locaux si créés
+docker/data/
+
+# ===========================================
+# DIVERS
+# ===========================================
+# Fichiers de backup
+*.bak
+*.tmp
+*.temp
+
+# Fichiers JSON d'export/import non nécessaires
+siyena-*.json
