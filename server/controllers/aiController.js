@@ -123,6 +123,7 @@ exports.sendMessage = asyncHandler(async (req, res, next) => {
       {
         model: 'siyena', // Le modèle défini dans Open WebUI
         messages: messages,
+        chat_id: '', // Évite l'erreur 'NoneType' object has no attribute 'startswith' dans Open WebUI
       },
       {
         timeout: 900000, // Augmenté à 15 minutes car Ollama tourne sur CPU
