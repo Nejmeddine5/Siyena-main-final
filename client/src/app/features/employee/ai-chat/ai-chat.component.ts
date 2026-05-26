@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService, ChatMessage, Conversation } from '../../../core/services/ai.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 interface DisplayMessage extends ChatMessage {
   formattedContent?: SafeHtml;
 }
@@ -25,6 +27,13 @@ interface DisplayMessage extends ChatMessage {
             {{ currentConversation?.title || 'Siyana' }}
           </span>
         </div>
+        
+        <!-- Theme Toggle -->
+        <button (click)="themeService.toggleTheme()"
+          class="p-2 rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 focus:outline-none transition-colors">
+          <i *ngIf="!themeService.darkMode()" class="fas fa-moon text-xl text-indigo-400"></i>
+          <i *ngIf="themeService.darkMode()" class="fas fa-sun text-xl text-yellow-400"></i>
+        </button>
       </header>
 
       <!-- Messages Area -->
@@ -34,18 +43,30 @@ interface DisplayMessage extends ChatMessage {
           
           <!-- Empty State / Welcome Screen -->
           <div *ngIf="messages.length === 0" class="flex flex-col items-center justify-center min-h-[55vh] text-center space-y-6 py-8" @fadeSlideIn>
-            <div class="w-12 h-12 bg-transparent overflow-hidden select-none">
-              <img src="/media/siyana.png" alt="Siyana IA" class="w-full h-full object-contain">
-            </div>
             
-            <h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              Comment puis-je vous aider aujourd'hui ?
-            </h3>
+            <div class="space-y-2">
+              <h3 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                Comment puis-je vous aider aujourd'hui ?
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                Posez une question ou sélectionnez l'un des problèmes fréquents ci-dessous pour démarrer.
+              </p>
+            </div>
+
+            <!-- Quick Prompts Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl px-4 mt-4">
+              <button *ngFor="let prompt of quickPrompts" 
+                      (click)="selectPrompt(prompt.text)"
+                      class="flex flex-col items-start text-left p-4 rounded-2xl bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#383838] hover:border-indigo-300 dark:hover:border-indigo-900/60 hover:bg-indigo-50/10 dark:hover:bg-indigo-950/10 shadow-sm hover:shadow transition-all duration-300 group">
+                <span class="font-bold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">{{ prompt.label }}</span>
+                <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white leading-snug">{{ prompt.text }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- Message Bubbles list -->
           <ng-container *ngIf="messages.length > 0">
-            <div *ngFor="let msg of messages; let last = last" 
+            <div *ngFor="let msg of messages; let msgIndex = index; let last = last" 
                  class="flex w-full" 
                  [ngClass]="msg.role === 'user' ? 'justify-end' : 'justify-start'" 
                  @fadeSlideIn>
@@ -55,21 +76,67 @@ interface DisplayMessage extends ChatMessage {
                 <img src="/media/siyana.png" alt="Siyana IA" class="w-full h-full object-contain rounded-full">
               </div>
 
-              <!-- Message Body -->
-              <div [ngClass]="msg.role === 'user' 
-                     ? 'max-w-[70%] rounded-[24px] px-5 py-3 text-sm sm:text-base leading-relaxed bg-[#f4f4f4] dark:bg-[#2f2f2f] text-gray-800 dark:text-gray-100 border-none shadow-none' 
-                     : 'max-w-[85%] sm:max-w-[78%] text-sm sm:text-base leading-relaxed bg-transparent border-none shadow-none text-gray-800 dark:text-gray-100 px-0 py-1.5'">
-                <div class="whitespace-pre-wrap select-text markdown-body" [innerHTML]="msg.formattedContent || msg.content"></div>
+              <!-- User Message Body with Action Bar -->
+              <div *ngIf="msg.role === 'user'" class="flex flex-col items-end max-w-[70%] group">
+                <div class="rounded-[24px] px-5 py-3 text-sm sm:text-base leading-relaxed bg-[#f4f4f4] dark:bg-[#2f2f2f] text-gray-800 dark:text-gray-100 border-none shadow-none w-full">
+                  <!-- Normal Content or Inline Editor -->
+                  <div *ngIf="editingIndex !== msgIndex" class="whitespace-pre-wrap select-text markdown-body" [innerHTML]="msg.formattedContent || msg.content"></div>
+                  
+                  <div *ngIf="editingIndex === msgIndex" class="w-full flex flex-col space-y-2 py-1">
+                    <textarea 
+                      [(ngModel)]="editingContent"
+                      rows="3"
+                      class="w-full bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none"
+                    ></textarea>
+                    <div class="flex justify-end space-x-2">
+                      <button (click)="editingIndex = -1" class="px-3 py-1.5 bg-gray-200 dark:bg-[#3d3d3d] text-gray-800 dark:text-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-300 dark:hover:bg-[#4d4d4d] transition-colors">
+                        Annuler
+                      </button>
+                      <button (click)="submitEdit(msgIndex)" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors">
+                        Enregistrer & Envoyer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- User Message Actions -->
+                <div *ngIf="editingIndex !== msgIndex" class="flex items-center space-x-2.5 mt-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500">
+                  <button (click)="copyMessage(msg.content, msgIndex)" class="hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1" title="Copier le message">
+                    <i [ngClass]="copiedIndex === msgIndex ? 'fas fa-check text-green-500' : 'fas fa-copy text-xs'"></i>
+                  </button>
+                  <button (click)="startEdit(msgIndex, msg.content)" class="hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1" title="Modifier le message">
+                    <i class="fas fa-pen text-xs"></i>
+                  </button>
+                </div>
               </div>
+
+              <!-- Assistant Message Body with Action Bar -->
+              <div *ngIf="msg.role === 'assistant'" class="flex flex-col items-start max-w-[85%] sm:max-w-[78%] group">
+                <div class="text-sm sm:text-base leading-relaxed bg-transparent border-none shadow-none text-gray-800 dark:text-gray-100 px-0 py-1.5">
+                  <div class="whitespace-pre-wrap select-text markdown-body" [innerHTML]="msg.formattedContent || msg.content"></div>
+                </div>
+
+                <!-- Assistant Message Actions -->
+                <div class="flex items-center space-x-2.5 mt-0.5 ml-1 text-gray-400 dark:text-gray-500">
+                  <button (click)="copyMessage(msg.content, msgIndex)" class="hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1" title="Copier la réponse">
+                    <i [ngClass]="copiedIndex === msgIndex ? 'fas fa-check text-green-500' : 'fas fa-copy text-xs'"></i>
+                  </button>
+                  <button (click)="regenerateMessage(msgIndex)" class="hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1" title="Régénérer la réponse">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </ng-container>
 
-          <div *ngIf="currentConversationId && messages.length > 0" class="flex justify-center">
+          <div *ngIf="currentConversationId && messages.length > 0" class="flex justify-center mt-4">
             <button *ngIf="!isTicketRequested"
                     (click)="requestTechnician()"
                     [disabled]="isRequesting"
-                    class="rounded-full border border-white/20 bg-white/10 text-gray-800 dark:text-gray-100 text-xs font-semibold px-4 py-2 transition duration-200 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50">
-              {{ isRequesting ? 'Envoi en cours...' : 'Demander un technicien' }}
+                    class="flex items-center space-x-2 rounded-full border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-5 py-2.5 transition-all duration-200 hover:bg-indigo-150 dark:hover:bg-indigo-900/40 shadow-sm hover:shadow hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
+              <i class="fas fa-user-cog text-sm"></i>
+              <span>{{ isRequesting ? 'Envoi en cours...' : "Demander l'assistance d'un technicien" }}</span>
             </button>
             <span *ngIf="isTicketRequested"
                   class="inline-flex items-center rounded-full bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 text-xs font-semibold px-3 py-1">
@@ -97,7 +164,7 @@ interface DisplayMessage extends ChatMessage {
         <div class="max-w-3xl mx-auto w-full">
           
           <!-- Input container -->
-          <div class="relative flex items-end bg-[#f4f4f4] dark:bg-[#2f2f2f] rounded-[26px] px-4 py-3 gap-3">
+          <div class="relative flex items-end bg-[#f4f4f4] dark:bg-[#2f2f2f] border border-transparent dark:border-[#383838] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/20 rounded-[26px] px-4 py-3 gap-3 shadow-sm transition-all duration-300">
 
             <!-- Textarea -->
             <textarea 
@@ -112,16 +179,30 @@ interface DisplayMessage extends ChatMessage {
             
             <!-- Send Button — arrow-up style (Claude / ChatGPT) -->
             <button 
+              *ngIf="!isLoading"
               (click)="sendMessage()" 
-              [disabled]="isLoading || !newMessage.trim()"
+              [disabled]="!newMessage.trim()"
               [attr.aria-label]="'Envoyer le message'"
               class="send-btn flex-shrink-0 self-end w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
-              [class.send-btn--active]="!isLoading && newMessage.trim()"
-              [class.send-btn--disabled]="isLoading || !newMessage.trim()"
+              [class.send-btn--active]="newMessage.trim()"
+              [class.send-btn--disabled]="!newMessage.trim()"
             >
               <!-- Arrow up icon -->
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M8 13V3M8 3L3.5 7.5M8 3L12.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            <!-- Stop Button — square icon -->
+            <button 
+              *ngIf="isLoading"
+              (click)="stopGeneration()" 
+              [attr.aria-label]="'Arrêter la génération'"
+              class="send-btn send-btn--active flex-shrink-0 self-end w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
+            >
+              <!-- Stop (square) icon -->
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="12" height="12" rx="2" />
               </svg>
             </button>
           </div>
@@ -205,6 +286,7 @@ interface DisplayMessage extends ChatMessage {
 export class AiChatComponent implements OnInit {
   aiService = inject(AiService);
   authService = inject(AuthService);
+  themeService = inject(ThemeService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
@@ -220,9 +302,129 @@ export class AiChatComponent implements OnInit {
   currentConversationId?: string;
   currentConversation?: Conversation;
 
+  quickPrompts = [
+    { label: '🛠️ Problème matériel', text: "Mon PC ou mon écran ne s'allume pas." },
+    { label: '🖨️ Panne Imprimante', text: "L'imprimante réseau ne répond plus." },
+    { label: '🔑 Accès Session', text: "Comment réinitialiser mon mot de passe de session ?" },
+    { label: '🌐 Problème Réseau', text: "Je n'arrive pas à me connecter à l'intranet." }
+  ];
+
+  editingIndex: number = -1;
+  editingContent: string = '';
+  copiedIndex: number = -1;
+  private chatSubscription?: Subscription;
+
+  startEdit(index: number, content: string) {
+    this.editingIndex = index;
+    this.editingContent = content;
+  }
+
+  submitEdit(index: number) {
+    if (!this.editingContent.trim() || this.isLoading) return;
+
+    const editedText = this.editingContent.trim();
+
+    // Slice messages to truncate subsequent ones
+    this.messages = this.messages.slice(0, index + 1);
+
+    // Update the message in place
+    this.messages[index].content = editedText;
+    this.messages[index].formattedContent = this.formatMessageContent(editedText);
+
+    this.editingIndex = -1;
+
+    // Trigger AI API call
+    this.isLoading = true;
+    this.chatSubscription = this.aiService.sendMessage(editedText, this.currentConversationId).subscribe({
+      next: (res) => {
+        const aiMsg = res.data.aiMessage;
+        this.messages.push({
+          ...aiMsg,
+          formattedContent: this.formatMessageContent(aiMsg.content)
+        });
+        this.isLoading = false;
+        this.scrollToBottom();
+      },
+      error: (err) => {
+        console.error(err);
+        this.isLoading = false;
+        const errMsg = 'Désolé, une erreur est survenue lors de la communication avec le serveur IA.';
+        this.messages.push({
+          role: 'assistant',
+          content: errMsg,
+          formattedContent: this.formatMessageContent(errMsg)
+        });
+        this.scrollToBottom();
+      }
+    });
+  }
+
+  regenerateMessage(index: number) {
+    if (this.isLoading || index <= 0) return;
+
+    const previousUserMessage = this.messages[index - 1];
+    if (previousUserMessage && previousUserMessage.role === 'user') {
+      // Remove current assistant message
+      this.messages = this.messages.slice(0, index);
+
+      this.isLoading = true;
+      this.chatSubscription = this.aiService.sendMessage(previousUserMessage.content, this.currentConversationId).subscribe({
+        next: (res) => {
+          const aiMsg = res.data.aiMessage;
+          this.messages.push({
+            ...aiMsg,
+            formattedContent: this.formatMessageContent(aiMsg.content)
+          });
+          this.isLoading = false;
+          this.scrollToBottom();
+        },
+        error: (err) => {
+          console.error(err);
+          this.isLoading = false;
+          const errMsg = 'Désolé, une erreur est survenue lors de la communication avec le serveur IA.';
+          this.messages.push({
+            role: 'assistant',
+            content: errMsg,
+            formattedContent: this.formatMessageContent(errMsg)
+          });
+          this.scrollToBottom();
+        }
+      });
+    }
+  }
+
+  copyMessage(text: string, index: number) {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedIndex = index;
+      setTimeout(() => {
+        if (this.copiedIndex === index) {
+          this.copiedIndex = -1;
+        }
+      }, 2000);
+    });
+  }
+
+  stopGeneration() {
+    if (this.chatSubscription) {
+      this.chatSubscription.unsubscribe();
+      this.chatSubscription = undefined;
+    }
+    this.isLoading = false;
+
+    const lastMsg = this.messages[this.messages.length - 1];
+    if (lastMsg && lastMsg.role === 'user') {
+      this.messages.push({
+        role: 'assistant',
+        content: '⏹️ Génération interrompue par l\'utilisateur.',
+        formattedContent: this.formatMessageContent('⏹️ Génération interrompue par l\'utilisateur.')
+      });
+    }
+    this.scrollToBottom();
+  }
+
   formatMessageContent(content: string): SafeHtml {
     if (!content) return '';
-    
+
     let html = content
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -244,8 +446,6 @@ export class AiChatComponent implements OnInit {
 
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
-
-  quickPrompts = [];
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
@@ -364,6 +564,10 @@ export class AiChatComponent implements OnInit {
   }
 
   clearCurrentChatState() {
+    if (this.chatSubscription) {
+      this.chatSubscription.unsubscribe();
+      this.chatSubscription = undefined;
+    }
     this.messages = [];
     this.currentConversationId = undefined;
     this.currentConversation = undefined;
@@ -382,14 +586,14 @@ export class AiChatComponent implements OnInit {
 
     const userText = this.newMessage.trim();
     this.newMessage = '';
-    
-    this.messages.push({ 
-      role: 'user', 
-      content: userText, 
-      formattedContent: this.formatMessageContent(userText) 
+
+    this.messages.push({
+      role: 'user',
+      content: userText,
+      formattedContent: this.formatMessageContent(userText)
     });
     this.scrollToBottom();
-    
+
     setTimeout(() => {
       if (this.textInput) {
         this.textInput.nativeElement.style.height = 'auto';
@@ -398,7 +602,7 @@ export class AiChatComponent implements OnInit {
 
     this.isLoading = true;
 
-    this.aiService.sendMessage(userText, this.currentConversationId).subscribe({
+    this.chatSubscription = this.aiService.sendMessage(userText, this.currentConversationId).subscribe({
       next: (res) => {
         const isNew = !this.currentConversationId;
         if (isNew && res.data && res.data.conversationId) {
@@ -420,8 +624,8 @@ export class AiChatComponent implements OnInit {
         console.error(err);
         this.isLoading = false;
         const errMsg = 'Désolé, une erreur est survenue lors de la communication avec le serveur IA.';
-        this.messages.push({ 
-          role: 'assistant', 
+        this.messages.push({
+          role: 'assistant',
           content: errMsg,
           formattedContent: this.formatMessageContent(errMsg)
         });
@@ -434,7 +638,7 @@ export class AiChatComponent implements OnInit {
     setTimeout(() => {
       try {
         this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
-      } catch (err) {}
+      } catch (err) { }
     }, 100);
   }
 }
