@@ -41,20 +41,6 @@ interface DisplayMessage extends ChatMessage {
             <h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
               Comment puis-je vous aider aujourd'hui ?
             </h3>
-
-            <!-- Quick Suggestions Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full mt-6 px-4">
-              <button *ngFor="let prompt of quickPrompts" 
-                      (click)="selectPrompt(prompt.text)"
-                      class="flex flex-col p-4 text-left bg-white dark:bg-[#212121] hover:bg-[#f9f9f9] dark:hover:bg-[#2f2f2f] border border-gray-200 dark:border-[#424242] rounded-xl transition-all duration-200 group shadow-none">
-                <div class="font-semibold text-gray-850 dark:text-gray-200 text-xs sm:text-sm">
-                  {{ prompt.title }}
-                </div>
-                <div class="text-[11px] text-gray-400 dark:text-gray-500 mt-1 leading-normal font-normal">
-                  {{ prompt.desc }}
-                </div>
-              </button>
-            </div>
           </div>
 
           <!-- Message Bubbles list -->
@@ -141,8 +127,9 @@ interface DisplayMessage extends ChatMessage {
           </div>
           
           <!-- Bottom Info / Version -->
-          <div class="text-center mt-3 select-none">
-            <span class="text-[9px] font-semibold tracking-wider text-gray-400 dark:text-gray-500 uppercase">Siyena AI Assistant v1.2 • Ollama Actif</span>
+          <div class="text-center mt-4 select-none pb-2">
+            <span class="text-[10px] font-bold tracking-wide text-blue-700 dark:text-blue-300">SIYENA</span>
+            <p class="text-[8px] text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">Centre Informatique du Ministère de la Santé (CIMS)</p>
           </div>
         </div>
       </div>
@@ -258,28 +245,7 @@ export class AiChatComponent implements OnInit {
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
-  quickPrompts = [
-    {
-      title: "Demande de Congé",
-      desc: "Rédiger un email professionnel de demande de congé annuel.",
-      text: "Rédige-moi un email formel pour demander des congés à mon responsable pour les deux premières semaines du mois prochain. Rends-le professionnel."
-    },
-    {
-      title: "Rapport d'Intervention",
-      desc: "Générer un exemple de rapport d'intervention technique standard.",
-      text: "Génère un modèle de rapport de maintenance ou d'intervention technique pour Siyena, avec des champs pour les détails du problème, de la solution et des pièces changées."
-    },
-    {
-      title: "Consignes de Sécurité",
-      desc: "Expliquer les règles de sécurité dans un atelier technique.",
-      text: "Quelles sont les 5 règles d'or de sécurité à respecter impérativement dans un environnement d'intervention technique ?"
-    },
-    {
-      title: "Aide Siyena AI",
-      desc: "Découvrir tout ce que l'assistant IA peut faire pour vous.",
-      text: "Explique-moi en détail comment tu peux m'assister en tant qu'employé sur la plateforme SIYENA, et quelles sont tes fonctionnalités principales ?"
-    }
-  ];
+  quickPrompts = [];
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
