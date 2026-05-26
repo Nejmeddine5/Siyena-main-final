@@ -12,7 +12,6 @@ import { Subscription } from 'rxjs';
 interface DisplayMessage extends ChatMessage {
   formattedContent?: SafeHtml;
 }
-
 @Component({
   selector: 'app-ai-chat',
   standalone: true,
