@@ -9,48 +9,58 @@ body {
 }
 
 /* Global Dark Mode Styles */
-html.dark body, body.dark {
-  background-color: #0f172a !important; /* Slate 900 */
+html.dark body,
+body.dark {
+  background-color: #0f172a !important;
+  /* Slate 900 */
   color: #f8fafc !important;
 }
 
 /* Auth Component Dark Mode Overrides (Global) */
-.dark .auth-wrapper, body.dark .auth-wrapper {
+.dark .auth-wrapper,
+body.dark .auth-wrapper {
   background: #0f172a !important;
 }
 
-.dark .container, body.dark .container {
+.dark .container,
+body.dark .container {
   background-color: #1e293b !important;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.5), 0 10px 10px rgba(0,0,0,0.4) !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.5), 0 10px 10px rgba(0, 0, 0, 0.4) !important;
 }
 
-.dark form, body.dark form {
+.dark form,
+body.dark form {
   background-color: #1e293b !important;
 }
 
-.dark h1, body.dark h1 {
+.dark h1,
+body.dark h1 {
   color: #ffffff !important;
 }
 
-.dark p, body.dark p {
+.dark p,
+body.dark p {
   color: #cbd5e1 !important;
 }
 
-.dark span, body.dark span {
+.dark span,
+body.dark span {
   color: #94a3b8 !important;
 }
 
-.dark a, body.dark a {
+.dark a,
+body.dark a {
   color: #fbbf24 !important;
 }
 
-.dark input, body.dark input {
+.dark input,
+body.dark input {
   background-color: #334155 !important;
   color: white !important;
   border: 1px solid #475569 !important;
 }
 
-.dark .overlay-panel, body.dark .overlay-panel {
+.dark .overlay-panel,
+body.dark .overlay-panel {
   color: #ffffff !important;
 }
-

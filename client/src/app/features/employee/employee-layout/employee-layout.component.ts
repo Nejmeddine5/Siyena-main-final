@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { AiService } from '../../../core/services/ai.service';
+import { ThemeService } from '../../../core/services/theme.service';
 
 @Component({
   selector: 'app-employee-layout',
@@ -58,11 +59,11 @@ import { AiService } from '../../../core/services/ai.service';
         
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col gap-3">
           <a routerLink="/employee/profile" routerLinkActive="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" 
-             class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+             class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-sm">
+            <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             Mon Profil
           </a>
-          <button (click)="logout()" class="flex items-center w-full px-4 py-3 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+          <button (click)="logout()" class="flex items-center w-full px-4 py-3 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             Déconnexion
           </button>
@@ -74,8 +75,12 @@ import { AiService } from '../../../core/services/ai.service';
         <!-- Mobile Header -->
         <header class="md:hidden h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4">
           <span class="text-lg font-bold text-gray-800 dark:text-white">Siyena AI</span>
-          <div class="flex items-center space-x-2">
-            <a routerLink="/employee/chat" class="text-sm font-medium text-blue-600 mr-2">Chat</a>
+          <div class="flex items-center space-x-3">
+            <button (click)="themeService.toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+              <i *ngIf="!themeService.darkMode()" class="fas fa-moon text-lg text-indigo-500"></i>
+              <i *ngIf="themeService.darkMode()" class="fas fa-sun text-lg text-yellow-500"></i>
+            </button>
+            <a routerLink="/employee/chat" class="text-sm font-medium text-blue-600">Chat</a>
             <button (click)="logout()" class="text-sm text-red-600">Quitter</button>
           </div>
         </header>
@@ -109,6 +114,7 @@ import { AiService } from '../../../core/services/ai.service';
 export class EmployeeLayoutComponent implements OnInit {
   authService = inject(AuthService);
   aiService = inject(AiService);
+  themeService = inject(ThemeService);
 
   ngOnInit() {
     this.aiService.loadConversations().subscribe({
