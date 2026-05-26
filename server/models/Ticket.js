@@ -7,6 +7,7 @@ const ticketSchema = new mongoose.Schema({
   printerModel: { type: String, required: true },
   issue: { type: String, required: true },
   priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], required: true },
+  requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Technician', required: false },
   assignedTechnician: { type: mongoose.Schema.Types.ObjectId, ref: 'Technician' },
   interventionDate: { type: Date },
   status: { type: String, enum: ['pending', 'assigned', 'in_progress', 'resolved', 'cancelled'], default: 'pending' },

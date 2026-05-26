@@ -2,8 +2,12 @@
 const axios = require('axios');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const Alert = require('../models/Alert');
+const Ticket = require('../models/Ticket');
+const Notification = require('../models/Notification');
 const asyncHandler = require('../utils/asyncHandler');
 const AppError = require('../utils/appError');
+const { v4: uuidv4 } = require('uuid');
 
 // ── Ollama Configuration ──────────────────────────────────────────────
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
@@ -43,6 +47,88 @@ function buildPrompt(conversationHistory, newMessage) {
 
   prompt += `Utilisateur : ${newMessage}\nSiyana :`;
   return prompt;
+}
+
+function extractJsonFromText(text) {
+  if (!text || typeof text !== 'string') return null;
+  const match = /({[\s\S]*})/m.exec(text);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch (err) {
+    return null;
+  }
+}
+
+function normalizeSeverity(value) {
+  if (!value) return 'medium';
+  const severity = String(value).trim().toLowerCase();
+  if (['critical', 'high', 'medium', 'low'].includes(severity)) return severity;
+  if (severity.includes('crit')) return 'critical';
+  if (severity.includes('urgent')) return 'high';
+  if (severity.includes('severe')) return 'high';
+  if (severity.includes('low')) return 'low';
+  return 'medium';
+}
+
+async function analyzeConversationForTicket(messages) {
+  const OPENWEBUI_API = process.env.OPENWEBUI_URL
+    ? process.env.OPENWEBUI_URL.split('/?')[0]
+    : 'http://localhost:3000';
+  const token = process.env.OPENWEBUI_API_KEY || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const conversationText = messages
+    .map(msg => `${msg.role === 'assistant' ? 'Siyana' : 'Utilisateur'} : ${msg.content}`)
+    .join('\n');
+
+  const response = await axios.post(
+    `${OPENWEBUI_API}/api/chat/completions`,
+    {
+      model: process.env.OPENWEBUI_MODEL || 'siyena',
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es un assistant IA chargé d'analyser une conversation technique et d'extraire un ticket d'intervention.",
+        },
+        {
+          role: 'user',
+          content: `Analyse l'historique suivant et fournis un objet JSON valide avec les champs : printerModel, issue, severity, confidence. Utilise uniquement low, medium, high ou critical pour severity. Ne fournis aucune explication supplémentaire. Conversation :\n${conversationText}`,
+        }
+      ],
+      chat_id: ''
+    },
+    {
+      timeout: 900000,
+      headers
+    }
+  );
+
+  const rawContent = response.data?.choices?.[0]?.message?.content || response.data?.choices?.[0]?.text || '';
+  const json = extractJsonFromText(rawContent);
+  if (!json) {
+    throw new Error('INVALID_AI_RESPONSE');
+  }
+
+  return {
+    printerModel: String(json.printerModel || 'Imprimante inconnue').trim(),
+    issue: String(json.issue || 'Problème détecté dans la conversation').trim(),
+    severity: normalizeSeverity(json.severity),
+    confidence: Number(json.confidence) || 0.75
+  };
+}
+
+function buildFallbackTicketData(conversation, messages) {
+  const firstUserMessage = messages.find(msg => msg.role === 'user');
+  const fallbackIssue = firstUserMessage?.content?.trim() || conversation.title || 'Demande de technicien automatique depuis le chatbot';
+
+  return {
+    printerModel: 'Imprimante inconnue',
+    issue: fallbackIssue,
+    severity: 'medium',
+    confidence: 0.5
+  };
 }
 
 // @desc    Send a message to the AI and get a response
@@ -176,6 +262,84 @@ exports.sendMessage = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Request a technician ticket from a conversation
+// @route   POST /api/ai/conversations/:id/request-ticket
+// @access  Private (Employee/Admin)
+exports.requestTechnicianTicket = asyncHandler(async (req, res, next) => {
+  const conversation = await Conversation.findById(req.params.id);
+  if (!conversation) {
+    return next(new AppError('Conversation introuvable.', 404));
+  }
+
+  if (conversation.userId.toString() !== req.technician._id.toString()) {
+    return next(new AppError('Accès non autorisé à cette conversation.', 403));
+  }
+
+  const existingAlert = await Alert.findOne({ conversation: conversation._id.toString() });
+  if (existingAlert) {
+    return next(new AppError('Une demande de technicien a déjà été soumise pour cette conversation.', 400));
+  }
+
+  const messages = await Message.find({ conversationId: conversation._id }).sort({ createdAt: 1 }).lean();
+  if (!messages || messages.length === 0) {
+    return next(new AppError('Conversation vide.', 400));
+  }
+
+  let ticketData;
+  try {
+    ticketData = await analyzeConversationForTicket(messages);
+  } catch (error) {
+    console.error('Analyse Open WebUI échouée:', error.response ? error.response.data : error.message);
+    ticketData = buildFallbackTicketData(conversation, messages);
+  }
+
+  const alert = await Alert.create({
+    printerModel: ticketData.printerModel,
+    issue: ticketData.issue,
+    severity: ticketData.severity,
+    confidence: ticketData.confidence,
+    status: 'assigned',
+    conversation: conversation._id.toString()
+  });
+
+  const ticket = await Ticket.create({
+    ticketId: `TICK-${uuidv4().substring(0, 6).toUpperCase()}`,
+    alertId: alert._id,
+    printerModel: alert.printerModel,
+    issue: alert.issue,
+    priority: alert.severity,
+    requestedBy: conversation.userId,
+    status: 'pending',
+    history: [{ action: 'Created from AI conversation request', performedBy: req.technician._id }]
+  });
+
+  const populatedTicket = await Ticket.findById(ticket._id)
+    .populate('assignedTechnician', 'nom')
+    .populate('requestedBy', 'nom email role');
+
+  const notification = await Notification.create({
+    message: `Nouvelle demande de technicien depuis la conversation "${conversation.title || 'Chat IA'}".`,
+    type: 'system',
+    relatedUserId: req.technician._id
+  });
+
+  const io = req.app.get('socketio');
+  if (io) {
+    io.emit('newAlert', alert);
+    io.emit('newTicket', populatedTicket);
+    io.emit('newNotification', notification);
+  }
+
+  res.status(201).json({
+    status: 'success',
+    data: {
+      alert,
+      ticket: populatedTicket,
+      notification
+    }
+  });
+});
+
 // @desc    Get all conversations for current user
 // @route   GET /api/ai/conversations
 // @access  Private (Employee/Admin)
@@ -211,12 +375,15 @@ exports.getConversationMessages = asyncHandler(async (req, res, next) => {
     .sort({ createdAt: 1 })
     .select('-__v');
 
+  const ticketRequested = await Alert.exists({ conversation: conversation._id.toString() });
+
   res.status(200).json({
     status: 'success',
     results: messages.length,
     data: {
       conversation,
-      messages
+      messages,
+      isTicketRequested: !!ticketRequested
     }
   });
 });

@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const Ticket = require('../models/Ticket');
 const Alert = require('../models/Alert');
+const Conversation = require('../models/Conversation');
 const AppError = require('../utils/appError');
 const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
@@ -22,12 +23,21 @@ exports.createTicket = asyncHandler(async (req, res, next) => {
     ? req.technician._id
     : null;
 
+  let requestedBy = null;
+  if (alert.conversation && mongoose.Types.ObjectId.isValid(alert.conversation)) {
+    const conversation = await Conversation.findById(alert.conversation);
+    if (conversation) {
+      requestedBy = conversation.userId;
+    }
+  }
+
   const ticket = await Ticket.create({
     ticketId: `TICK-${uuidv4().substring(0, 6).toUpperCase()}`,
     alertId: alert._id,
     printerModel: alert.printerModel,
     issue: alert.issue,
     priority: alert.severity,
+    requestedBy,
     assignedTechnician: performedBy,
     notes: notes ? [{ text: notes, addedBy: performedBy }] : [],
     status: 'pending', // Starts in 'À faire' / pending
@@ -39,14 +49,18 @@ exports.createTicket = asyncHandler(async (req, res, next) => {
   alert.status = 'assigned';
   await alert.save();
 
+  const populatedTicket = await Ticket.findById(ticket._id)
+    .populate('assignedTechnician', 'nom')
+    .populate('requestedBy', 'nom email role');
+
   // Emitting the event
   const io = req.app.get('socketio');
   if (io) {
-    io.emit('newTicket', ticket);
+    io.emit('newTicket', populatedTicket);
     io.emit('alertUpdated', alert);
   }
 
-  res.status(201).json({ status: 'success', data: ticket });
+  res.status(201).json({ status: 'success', data: populatedTicket });
 });
 
 exports.getAllTickets = asyncHandler(async (req, res, next) => {
@@ -57,7 +71,9 @@ exports.getAllTickets = asyncHandler(async (req, res, next) => {
     filter.assignedTechnician = req.technician._id;
   }
 
-  const tickets = await Ticket.find(filter).populate('assignedTechnician', 'nom');
+  const tickets = await Ticket.find(filter)
+    .populate('assignedTechnician', 'nom')
+    .populate('requestedBy', 'nom email role');
   res.status(200).json({ status: 'success', results: tickets.length, data: tickets });
 });
 
@@ -113,11 +129,14 @@ exports.createManualTicket = asyncHandler(async (req, res, next) => {
     }]
   });
 
+  const populatedTicket = await Ticket.findById(ticket._id)
+    .populate('assignedTechnician', 'nom')
+    .populate('requestedBy', 'nom email role');
 
   const io = req.app.get('socketio');
-  if (io) io.emit('newTicket', ticket);
+  if (io) io.emit('newTicket', populatedTicket);
 
-  res.status(201).json({ status: 'success', data: ticket });
+  res.status(201).json({ status: 'success', data: populatedTicket });
 });
 
 exports.assignTicket = asyncHandler(async (req, res, next) => {

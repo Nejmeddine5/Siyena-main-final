@@ -74,6 +74,10 @@ export class AiService {
   getConversationMessages(conversationId: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/conversations/${conversationId}/messages`);
   }
+
+  requestTechnician(conversationId: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/conversations/${conversationId}/request-ticket`, {});
+  }
 }
 
 

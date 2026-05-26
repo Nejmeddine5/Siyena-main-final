@@ -78,6 +78,19 @@ interface DisplayMessage extends ChatMessage {
             </div>
           </ng-container>
 
+          <div *ngIf="currentConversationId && messages.length > 0" class="flex justify-center">
+            <button *ngIf="!isTicketRequested"
+                    (click)="requestTechnician()"
+                    [disabled]="isRequesting"
+                    class="rounded-full border border-white/20 bg-white/10 text-gray-800 dark:text-gray-100 text-xs font-semibold px-4 py-2 transition duration-200 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50">
+              {{ isRequesting ? 'Envoi en cours...' : 'Demander un technicien' }}
+            </button>
+            <span *ngIf="isTicketRequested"
+                  class="inline-flex items-center rounded-full bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 text-xs font-semibold px-3 py-1">
+              Demande envoyée aux admins
+            </span>
+          </div>
+
           <!-- Typing Indicator -->
           <div *ngIf="isLoading" class="flex w-full justify-start" @fadeSlideIn>
             <div class="w-8 h-8 shrink-0 mr-3 rounded-full bg-white dark:bg-[#2f2f2f] border border-gray-150 dark:border-[#424242] shadow-sm flex items-center justify-center mt-1 overflow-hidden p-0.5 select-none">
@@ -215,6 +228,8 @@ export class AiChatComponent implements OnInit {
   messages: DisplayMessage[] = [];
   newMessage = '';
   isLoading = false;
+  isTicketRequested = false;
+  isRequesting = false;
   currentConversationId?: string;
   currentConversation?: Conversation;
 
@@ -308,6 +323,7 @@ export class AiChatComponent implements OnInit {
           ...msg,
           formattedContent: this.formatMessageContent(msg.content)
         }));
+        this.isTicketRequested = !!res.data.isTicketRequested;
         this.isLoading = false;
         this.scrollToBottom();
       },
@@ -349,11 +365,45 @@ export class AiChatComponent implements OnInit {
     this.router.navigate(['/employee/chat'], { queryParams: {} });
   }
 
+  requestTechnician() {
+    if (!this.currentConversationId || this.isRequesting || this.isTicketRequested) return;
+
+    this.isRequesting = true;
+    this.aiService.requestTechnician(this.currentConversationId).subscribe({
+      next: () => {
+        this.isTicketRequested = true;
+        this.isRequesting = false;
+
+        const infoContent = '✅ Votre demande de technicien a été envoyée aux administrateurs. Un ticket a été créé à partir de cette conversation.';
+        this.messages.push({
+          role: 'assistant',
+          content: infoContent,
+          formattedContent: this.formatMessageContent(infoContent)
+        });
+        this.scrollToBottom();
+      },
+      error: (err) => {
+        console.error(err);
+        this.isRequesting = false;
+
+        const errorContent = '⚠️ Impossible de créer la demande de technicien pour le moment. Réessayez plus tard.';
+        this.messages.push({
+          role: 'assistant',
+          content: errorContent,
+          formattedContent: this.formatMessageContent(errorContent)
+        });
+        this.scrollToBottom();
+      }
+    });
+  }
+
   clearCurrentChatState() {
     this.messages = [];
     this.currentConversationId = undefined;
     this.currentConversation = undefined;
     this.newMessage = '';
+    this.isTicketRequested = false;
+    this.isRequesting = false;
     setTimeout(() => {
       if (this.textInput) {
         this.textInput.nativeElement.style.height = 'auto';

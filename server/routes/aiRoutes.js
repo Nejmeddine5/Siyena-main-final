@@ -11,6 +11,7 @@ router.use(protect);
 router.use(restrictTo('employee', 'admin'));
 
 router.post('/chat', aiController.sendMessage);
+router.post('/conversations/:id/request-ticket', aiController.requestTechnicianTicket);
 router.get('/conversations', aiController.getConversations);
 router.get('/conversations/:id/messages', aiController.getConversationMessages);
 

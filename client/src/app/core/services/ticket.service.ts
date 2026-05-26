@@ -20,6 +20,7 @@ export interface Ticket {
   printerModel: string;
   issue: string;
   priority: string;
+  requestedBy?: any;
   status: 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'cancelled';
   assignedTechnician: any;
   createdAt: string;
