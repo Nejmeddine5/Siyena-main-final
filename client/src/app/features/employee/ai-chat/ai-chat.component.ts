@@ -128,7 +128,6 @@ interface DisplayMessage extends ChatMessage {
 
             </div>
           </ng-container>
-
           <div *ngIf="currentConversationId && messages.length > 0" class="flex justify-center mt-4">
             <button *ngIf="!isTicketRequested"
                     (click)="requestTechnician()"
